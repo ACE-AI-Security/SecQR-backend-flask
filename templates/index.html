@@ -21,21 +21,29 @@
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-      const predictionApiUrl = "{{ prediction_api_url }}";
+      const predictionApiUrl = "{{ prediction_api_url }}".endsWith('/') ? "{{ prediction_api_url }}" : "{{ prediction_api_url }}/";
+
+      function isValidURL(urlString) {
+        try {
+          new URL(urlString);
+          return true;
+        } catch (error) {
+          return false;
+        }
+      }
 
       async function getPrediction(url) {
+        document.getElementById("prediction").innerText = "Predicting...";
+        document.getElementById("url-info").innerHTML = "";
+
         try {
           const response = await axios.post(
             predictionApiUrl + "predict",
             new URLSearchParams({ url: url })
           );
-          console.log("Prediction:", response.data.prediction);
-
-          // 유형 결과
           document.getElementById("prediction").innerText =
             "Predicted URL type: " + response.data.prediction;
 
-          // URL 정보
           const urlInfo = response.data.url_info;
           let urlInfoHtml = `
             <p>Parameter Length: ${urlInfo.parameter_len}</p>
@@ -44,24 +52,26 @@
             <p>Sub Domain: ${urlInfo.sub_domain}</p>
             <p>Abnormal URL: ${urlInfo.abnormal_url}</p>
           `;
-
           document.getElementById("url-info").innerHTML = urlInfoHtml;
         } catch (error) {
           console.error("Error making request:", error);
-          document.getElementById("prediction").innerText =
-            "Error fetching prediction";
+          document.getElementById("prediction").innerText = "There was an issue processing your request. Please try again later.";
           document.getElementById("url-info").innerHTML = "";
         }
       }
 
-      // Event listener
-      document
-        .getElementById("url-form")
-        .addEventListener("submit", function (event) {
-          event.preventDefault();
-          const url = document.getElementById("url").value;
-          getPrediction(url);
-        });
+      document.getElementById("url-form").addEventListener("submit", function (event) {
+        event.preventDefault();
+        const url = document.getElementById("url").value;
+
+        if (!isValidURL(url)) {
+          document.getElementById("prediction").innerText = "Invalid URL format. Please enter a valid URL.";
+          document.getElementById("url-info").innerHTML = "";
+          return;
+        }
+
+        getPrediction(url);
+      });
     </script>
   </body>
 </html>
